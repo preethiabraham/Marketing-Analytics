@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+#By Preethi Susan Abraham
+
+orders=read.csv('C:/Users/Preethi Abraham/Desktop/Brandeis Studies/Marketing Analytics/Orders.csv')
+View(orders)
+
+library(ggplot2)
+#Plot of all products which are sold along with the quantities
+ggplot(orders, aes(Lineitem.name,Lineitem.quantity))+geom_bar(stat="identity", position=position_dodge())+coord_flip()
+
+
+#Checking the items which have been paid for
+orders_paid=subset(orders,orders$Financial.Status=="paid")
+#orders_paid$total_earned=orders_paid$Total*orders_paid$Lineitem.quantity
+
+#Quantity of items 
+ggplot(orders_paid, aes(Lineitem.name,Lineitem.quantity))+geom_bar(stat="identity", position=position_dodge())+coord_flip()
+
+ggplot(orders_paid, aes(Lineitem.name,Total))+geom_bar(stat="identity", position=position_dodge())+coord_flip()
+#Among Brandeis Products, it can be seen that Brandeis_beer_stein is generating the most amount of money from customers. This is followed by Whiskey and M&Ms. So the "Hero Product" could be the beer stein
+
+ggplot(orders_paid, aes(Lineitem.name,Lineitem.price))+geom_bar(stat="identity", position=position_dodge())+coord_flip()
+
+#bundle 2
+a=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Brandeis_shirt"]
+b=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Brandeis_hat"]
+c=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Brandeis_keychain"]
+a+b+c
+
+#bundle 1
+d=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Brandeis_beer_stein"]
+e=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Beer"]
+d+e
+
+#additional insghts:
+orders_not_paid=subset(orders,orders$Financial.Status!="paid")
+unique(orders_not_paid$Lineitem.name)
+#Brandeis Blanket, Brandeis waterbottle, Vodka and Champagne seem to be the items which are refunded or have no record of whether it has been paid for or not
+
+f=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="M&M"]
+g=orders_paid$Lineitem.price[orders_paid$Lineitem.name=="Reeses"]
+f+g
+```
+

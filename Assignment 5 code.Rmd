@@ -1,0 +1,175 @@
+---
+title: 'Assignment 5: Marketing Analytics'
+author: "Preethi Abraham"
+date: "22/04/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(readxl)
+doritos_data <- read_excel("C:/Users/Preethi Abraham/Desktop/Brandeis Studies/Marketing Analytics/Assignment 5/doritos_data.xlsx")
+View(doritos_data)
+unique(doritos_data$`Image brands`)#all the brands 
+
+#Separating out the data which has negative sentiment
+negative_sentiment=subset(doritos_data,doritos_data$Sentiment=="Negative")
+View(negative_sentiment)
+
+#Just to get an idea of the 'negative' text snippets which are being written by users
+head(negative_sentiment$`Text snippet`,4)
+
+#Brands with major negative sentiment from customers
+unique(negative_sentiment$`Image brands`)
+#Doritos, Pepsi, KFC and the combination of Pepsi-Doritos seem to be having problems.
+
+
+title=as.data.frame(unique(negative_sentiment$Title))
+View(title)
+head(title)
+#The major problem seems to be that customers are talking about how unhealthy doritos is
+
+library(tm)
+library(wordcloud)
+library(topicmodels)
+library(stringr)
+
+library(zoo)
+library(smooth)
+library(datetime)
+library(lubridate)
+
+negative_sentiment$text <- iconv(negative_sentiment$`Text snippet`, 'latin1', 'ASCII', sub="")
+
+head(negative_sentiment$text,20)
+#Most people seem to be compaining about how unhealthy Doritos seems to be.  
+
+negative_sentiment_corpus <- VCorpus(VectorSource(negative_sentiment$text))
+negative_sentiment_corpus<- tm::tm_map(negative_sentiment_corpus, removePunctuation)
+negative_sentiment_corpus <- tm::tm_map(negative_sentiment_corpus, stripWhitespace)
+negative_sentiment_corpus <- tm_map(negative_sentiment_corpus, removeNumbers)
+negative_sentiment_corpus <- tm_map(negative_sentiment_corpus, content_transformer(tolower))
+negative_sentiment_corpus <- tm::tm_map(negative_sentiment_corpus, removeWords, stopwords("en"))
+
+negative_sentiment_corpus
+Comprehension_dict <- c("need", "doritos","pepsi","kfc")
+dtm_comprehend <- DocumentTermMatrix(negative_sentiment_corpus, control = list(dictionary=Comprehension_dict))
+
+Textdoc <- tm::TermDocumentMatrix(negative_sentiment_corpus)
+Textdoc_matrix <- as.matrix(Textdoc)
+
+#To get the count of the words used more in the text snippets
+dtm_v <- sort(rowSums(Textdoc_matrix),decreasing=TRUE)
+dtm_d <- data.frame(word = names(dtm_v),freq=dtm_v)
+most_used_words=as.data.frame(head(dtm_d, 50))
+
+library(ggplot2)
+
+ggplot(most_used_words ,aes(word,freq))+geom_bar(stat="identity")+coord_flip()
+
+#Generating a word Cloud to understand the top 100 keywords which are being used
+set.seed(1234)
+wordcloud(words = dtm_d$word, freq = dtm_d$freq, min.freq = 5,
+          max.words=100, random.order=FALSE, rot.per=0.40, 
+          colors=brewer.pal(8, "Dark2"))
+
+countries_negative_sent=as.data.frame(table(negative_sentiment$Country))
+colnames(countries_negative_sent)<- c("Country_Name","Count_of_negative_reviews")
+View(countries_negative_sent)
+
+
+ggplot(countries_negative_sent,aes(Country_Name,Count_of_negative_reviews))+geom_bar(stat="identity")+coord_flip()+labs(title = "Count of customers who gave negative reviews as per country ",
+              x = "Country Name", y = "Count of Negative Reviews")
+#Most of the negative reviews seem to be coming from the USA
+
+table(negative_sentiment$`Post type`)
+
+#To understand sentiment of the negative text
+library(syuzhet)
+y <- get_nrc_sentiment(negative_sentiment$text[1:158])
+y
+td <- data.frame(t(y))
+td_new <- data.frame(rowSums(td))
+names(td_new)[1]<- "count"
+td_new <- cbind("sentiment" = rownames(td_new),td_new)
+rownames(td_new) <- NULL
+td_new2 <- td_new[1:8,]
+quickplot(sentiment,data=td_new2, weight = count, geom="bar", fill =sentiment, ylab="count")+ggtitle("Emotions")
+
+#Finding associations
+findAssocs(Textdoc, terms = c("unhealthy","doritos","pepsi","kfc"), corlimit = 0.25)	
+
+library(dplyr)
+group_by_sent=doritos_data%>%group_by(Source,Sentiment)%>%summarise(n())
+names(group_by_sent)[names(group_by_sent) == "n()"] <- "count"
+
+group_by_sent=subset(group_by_sent,group_by_sent$count>=8)
+ggplot(group_by_sent, aes(x =count , y =Source))+
+  geom_bar(stat = "identity", color = "white",
+    position = position_dodge(0.9)
+    )+
+  facet_wrap(~Sentiment)+labs(title = "Count of customer reviews as per sentiment ",
+              x = "Count of customer Reviews", y = "Source")
+
+#Insights from data:
+#Most people tend to be using twitter as a platform to express their views about products. It is surprising to see that most customers generally tend to express neutral opinions. Our client should utilize Twitter as the primary platform to understand their customers and use this platform for marketing their products
+
+
+table(negative_sentiment$Demography)
+brand_and_sent=doritos_data%>%group_by(`Image brands`,Sentiment)%>%summarise(n())
+names(brand_and_sent)[names(brand_and_sent) == "n()"] <- "count"
+
+#Removing the NA's from the dataset
+brand_and_sent=subset(brand_and_sent,brand_and_sent$`Image brands`!="NA")
+
+#Observing all brands along with their sentiment
+ggplot(brand_and_sent, aes(x =count , y =`Image brands`))+
+  geom_bar(stat = "identity", color = "white",
+    position = position_dodge(0.9)
+    )+
+  facet_wrap(~Sentiment)+labs(title = "Count of customer reviews for different products as per sentiment ", x = "Count of customer reviews", y = "Brands")
+#Doritos is the only brand which seems to be having majorly "neutral" sentiment
+
+neg_brands_and_sent=negative_sentiment%>%group_by(`Image brands`)%>%summarise(n())
+names(neg_brands_and_sent)[names(neg_brands_and_sent) == "n()"] <- "count"
+#Removing NA's from data
+neg_brands_and_sent=subset(neg_brands_and_sent,neg_brands_and_sent$`Image brands`!="NA")
+ggplot(neg_brands_and_sent,aes(x=count, y=`Image brands`,fill=`Image brands`))+geom_bar(stat = "identity", color = "white",
+    position = position_dodge(0.9)
+    )+labs(title = "Products with negative sentiment", x = "Count of negative reviews", y = "Brands")
+
+#Products that our client should focus on
+other_sentiment=subset(doritos_data,doritos_data$Sentiment!="Negative")
+View(other_sentiment)
+
+other_brands_and_sent=other_sentiment%>%group_by(`Image brands`,Sentiment)%>%summarise(n())
+names(other_brands_and_sent)[names(other_brands_and_sent) == "n()"] <- "count"
+#Removing NA's from data
+other_brands_and_sent=subset(other_brands_and_sent,other_brands_and_sent$`Image brands`!="NA")
+ggplot(other_brands_and_sent,aes(x=count, y=`Image brands`,fill=`Image brands`))+geom_bar(stat = "identity", color = "white",
+    position = position_dodge(0.9)
+    )+facet_wrap(~Sentiment)
+
+#Trying to understand how customers express their opinion about products sold by our client
+table(doritos_data$`Post type`)
+table(negative_sentiment$`Post type`)
+
+table(doritos_data$Author)
+
+#Tring to understand sentiment of customers from different countries
+countries_and_sent=doritos_data%>%group_by(Country,Sentiment)%>%summarise(n())
+names(countries_and_sent)[names(countries_and_sent) == "n()"] <- "Count"
+countries_and_sent=subset(countries_and_sent,countries_and_sent$Country!="NA")
+countries_and_sent%>%arrange(desc(Count))
+countries_and_sent=subset(countries_and_sent,countries_and_sent$Count>=10)
+View(countries_and_sent)
+
+
+ggplot(countries_and_sent,aes(Country,Count))+geom_bar(stat="identity")+coord_flip()+facet_wrap(~Sentiment)+labs(title = "Count of reviews as per sentiment according to countries", x = "Country", y = "Count of reviews")
+
+
+
+```
+

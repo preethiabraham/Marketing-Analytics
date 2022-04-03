@@ -1,0 +1,113 @@
+---
+title: "Marketing Analytics Assignment 1 Q5-Preethi"
+author: "Preethi Abraham"
+date: "24/02/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+reactance_data <- read_excel("C:/Users/Preethi Abraham/Desktop/Brandeis Studies/Marketing Analytics/reactance_data.xlsx")
+View(reactance_data)
+
+#Preethi Susan Abraham
+
+##############Q5-1##################
+
+#Trying to find the correlation between 'The thought that [Q17R] supports the president aggravates me' and 'I think [Q17R]  needs to be boycotted' 
+
+cor(reactance_data$Q25_1, reactance_data$Q25_5)
+
+#There seems to be a strong positive correlation (0.7408939) between Q25_1 and Q25_5. Most people who are aggravated by the firm's support for the president agree that they need to boycott the brand
+
+cor(reactance_data$Q25_1,reactance_data$Q25_3)
+#There seems to be a strong positive correlation (0.7567525) between Q25_1 and Q25_3. Most people who are aggravated by the firm's support for the president agree that they are irritated with the brand supports the president's policies.
+
+
+#Here, I tried to create a dataset which consists of customers who are willing to boycott the brand
+pro_boycott=subset(reactance_data, reactance_data$Q25_5>=5)
+View(pro_boycott)
+pro_boycott$Q25_5
+
+boycott=nrow(pro_boycott)
+boycott #42 customers are willing to boycott after the firm supports Trump
+
+#Percentage of customer boycotting brand
+(nrow(pro_boycott)/nrow(reactance_data))*100
+#28% of customers will boycott the brand if they do nothing
+
+pro_avoid= subset(reactance_data, reactance_data$Q25_6>=5)
+pro_avoid$Q25_6
+avoid_brand=nrow(pro_avoid)
+avoid_brand
+
+#Percentage of customer avoiding brand
+avoid_brand/nrow(reactance_data)*100
+#30% of customers will avoid the brand if they do nothing
+
+customers_lost_percent=(avoid_brand+boycott)/nrow(reactance_data)*100
+customers_lost_percent 
+#58% customers will potentially be lost if the brand does nothing
+
+install.packages("psych")
+library(psych)
+
+
+############Q5-2#################
+install.packages("Hmisc")
+library(Hmisc)
+
+#We select Q15_1 to Q15_8 because these questions mainly revolve around the political pyschological climate
+pysch_climate=reactance_data[59:66]
+new=cbind(pysch_climate, reactance_data$Q26_1)
+View(new)
+View(pysch_climate)
+
+rcorr(as.matrix(new))
+#Here, Q15_7 and Q15_8 are highly positively correlated(0.81) i.e when citizens protest more against the President’s actions when they can, it is more likely that they contradict any political action made by the President
+
+##############Correlation Values of each question(15_1 to 15_8) with Q26_1 ##########################
+#                     reactance_data$Q26_1
+#Q15_1                               -0.16
+#Q15_2                                0.00
+#Q15_3                               -0.01
+#Q15_4                                0.08
+#Q15_5                                0.10
+#Q15_6                                0.00
+#Q15_7                                0.03
+#Q15_8                                0.11
+#reactance_data$Q26_1                 1.00
+
+###############p Values of each question(15_1 to 15_8) with Q26_1
+
+#                     reactance_data$Q26_1
+#Q15_1                0.0494              
+#Q15_2                0.9699              
+#Q15_3                0.9462              
+#Q15_4                0.3567              
+#Q15_5                0.2243              
+#Q15_6                0.9826              
+#Q15_7                0.7434              
+#Q15_8                0.1980              
+#reactance_data$Q26_1       
+#####################
+
+#We can see that the p values are very high for Q15_2 w.r.t Q26_1 (i.e 0.9699). People will not prefer to purchase from this brand in the future if they strongly feel angry when others support the President.
+
+#We can see that the p values are very high for Q15_3 w.r.t Q26_1 (i.e 0.9462).People will not prefer to purchase from this brand in the future if they strongly feel that the President is trying to interfere with their freedom.
+
+#We can see that the p values are very high for Q15_6 w.r.t Q26_1 (i.e 0.9826)
+
+#From this, we can see that the effect size is large
+#Therefore, the pyschological climate has a huge impact on the number of lost customers.
+
+
+#P.S--> I chose Q26_1:'After what was just described, to what extent do you think you’ll purchase [Q17R] products in the future?' because this question will help us understand the overall impact of whether customers will continue to stay loyal to the brand or not
+
+
+```
+

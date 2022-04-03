@@ -1,0 +1,138 @@
+---
+title: 'Assignment 6: Marketing Analytics'
+author: "Preethi Abraham"
+date: "29/04/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# By Preethi Susan Abraham
+
+library(shiny)
+library(dplyr)
+library(ggplot2)
+
+#runExample("01_hello")
+
+### the UI portion of your app
+ui <- fluidPage(
+  titlePanel("Advertising Campaign Analysis App"),
+  sidebarLayout(
+    sidebarPanel(
+      
+      radioButtons("questions","Analysis",c("campaign.winner","customers.interested.about.product","mean.rating.by.customers.willing.to.buy.product","customers.who.would.buy.from.brand.frequently","spend.more.on.this.brand.over.competitors","recommend.to.friends","never.buy.from.brand.again")),
+      br(),
+      "1:Overall impression of each campaign after seeing the product ",
+      br(),
+      "2:Customers who would be curious to know more about the product ",
+      br(),
+      "3:Mean rating given by customers who are willing to buy product",
+      br(),
+      "4:Count of customers who are willing to buy from the brand frequently",
+      br(),
+      "5:Count of customers who are willing to spend more on this brand over its competitors",
+      br(),
+      "6:Count of customers who would recommend product to their friends",
+      br(),
+      "7: Count of customers who would never buy from brand again"
+    
+      #This closes sidebarPanel
+    ),
+    
+    mainPanel(
+      
+      plotOutput("plot")
+      
+    #Close mainPanel  
+    )
+    
+    #This closes sidebarLayout
+  )
+ 
+  #closes UI
+)
+
+### The server portion of your app
+server <- function(input, output){
+  
+  data <- read.csv("C:/Users/Preethi Abraham/Desktop/Brandeis Studies/Marketing Analytics/Assignment 6/20210407152446-SurveyExport.csv")
+  
+  data=subset(data,data$New.Percent.Branch!="")
+  
+  unique(data$New.Percent.Branch)
+  
+  data1=data%>%filter(data$After.seeing.the.product..what.is.your.overall.impression.!="NA")%>%group_by(New.Percent.Branch)%>%summarise(mean(After.seeing.the.product..what.is.your.overall.impression.))
+  #since the overall rating is out of 7, we can say that 5 and 6 are very high scores given by customers
+  names(data1)[names(data1) == "mean(After.seeing.the.product..what.is.your.overall.impression.)"] <- "Mean.of.rating"
+  
+  data2=data%>%filter(I.would.go.pick.up.the.product.to.find.out.more.about.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.==c(5,6))%>%group_by(New.Percent.Branch,I.would.go.pick.up.the.product.to.find.out.more.about.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.)%>%summarise(n())
+  names(data2)[names(data2) == "n()"] <- "Count.of.customers.who.gave.rating.of.5.or.above"
+
+  
+  data3=data%>%filter(I.would.go.pick.up.the.product.with.the.intention.of.buying.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.!="NA")%>%group_by(New.Percent.Branch)%>%summarise(mean(I.would.go.pick.up.the.product.with.the.intention.of.buying.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.))
+  names(data3)[names(data3) == "mean(I.would.go.pick.up.the.product.with.the.intention.of.buying.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.)"] <- "Mean.of.Ratings"
+  
+  data4=subset(data,data$I.would.purchase.more.frequently.from.this.brand.After.seeing.the.product..which.of.the.following.would.you.do..1=="I would purchase more frequently from this brand")
+  data4=data4%>%group_by(New.Percent.Branch)%>%summarise(n())
+  names(data4)[names(data4) == "n()"] <- "Count.of.customers.who.would.purchase.more.frequently.from.brand"
+  
+  data5=subset(data,data$I.spend.more.money.to.have.this.brand.over.a.competitor.After.seeing.the.product..which.of.the.following.would.you.do..1=="I spend more money to have this brand over a competitor")
+  data5=data5%>%group_by(New.Percent.Branch)%>%summarise(n())
+  names(data5)[names(data5) == "n()"] <- "Count.of.customers.who.spend.more.money.to.have.this.brand.over.competitor"
+  
+  data6=subset(data,data$I.would.highly.recommend.this.brand.to.friends.After.seeing.the.product..which.of.the.following.would.you.do..1=="I would highly recommend this brand to friends")
+  data6=data6%>%group_by(New.Percent.Branch)%>%summarise(n())
+  names(data6)[names(data6) == "n()"] <- "Count.of.customers.who.would.recommend.brand.to.friends"
+  
+  data7=subset(data,data$I.would.never.buy.from.that.brand.again.After.seeing.the.product..which.of.the.following.would.you.do.=="I would never buy from that brand again")
+  data7=data7%>%group_by(New.Percent.Branch)%>%summarise(n())
+  names(data7)[names(data7) == "n()"] <- "Count.of.customers.who.would.never.buy.from.brand.again"
+  
+  ggplot(data7,aes(New.Percent.Branch,Count.of.customers.who.would.never.buy.from.brand.again,fill=New.Percent.Branch))+geom_bar(stat = "identity")+coord_flip()
+  
+  campaign.winner<-data1$After.seeing.the.product..what.is.your.overall.impression.
+  customers.interested.about.product<-data2$I.would.go.pick.up.the.product.to.find.out.more.about.it.Imagine.you.had.to.go.to.the.store.to.pick.something.up..While.you.were.at.the.store..you.saw.this.package.in.passing..How.likely.are.you.to.do.each.of.the.following.
+  
+  mean.rating.by.customers.willing.to.buy.product<-data3$Mean.of.Ratings
+  
+  customers.who.would.buy.from.brand.frequently<-data4$Count.of.customers.who.would.purchase.more.frequently.from.brand
+  
+  spend.more.on.this.brand.over.coompetitors<-data5$Count.of.customers.who.spend.more.money.to.have.this.brand.over.competitor
+  
+  recommend.to.friends<-data6$Count.of.customers.who.would.recommend.brand.to.friends
+  
+  never.buy.from.brand.again<-data7$Count.of.customers.who.would.never.buy.from.brand.again
+  
+  
+  
+
+  observe({
+  if(input$questions=="campaign.winner"){  
+    output$plot <- renderPlot({ggplot(data1,aes(New.Percent.Branch,Mean.of.rating,fill=New.Percent.Branch))+geom_bar(stat="identity",position = position_dodge())})
+  } else if(input$questions=="customers.interested.about.product") {
+    output$plot <- renderPlot({ggplot(data2, aes(New.Percent.Branch,Count.of.customers.who.gave.rating.of.5.or.above,fill=New.Percent.Branch))+geom_bar(stat = "identity",position = "stack")})
+  }else if(input$questions=="mean.rating.by.customers.willing.to.buy.product"){
+    output$plot<-renderPlot({ggplot(data3,aes(New.Percent.Branch,Mean.of.Ratings,fill=New.Percent.Branch))+geom_bar(stat = "identity",position=position_dodge())})
+  }else if(input$questions=="customers.who.would.buy.from.brand.frequently"){
+    output$plot<-renderPlot({ggplot(data4,aes(New.Percent.Branch,Count.of.customers.who.would.purchase.more.frequently.from.brand,fill=New.Percent.Branch))+geom_bar(stat="identity")+coord_flip()})
+  }else if(input$questions=="spend.more.on.this.brand.over.competitors"){
+    output$plot<-renderPlot({ggplot(data5,aes(New.Percent.Branch,Count.of.customers.who.spend.more.money.to.have.this.brand.over.competitor,fill=New.Percent.Branch))+geom_bar(stat="identity",position = position_dodge())+coord_flip()})
+  }else if(input$questions=="recommend.to.friends"){
+    output$plot<-renderPlot({ggplot(data6,aes(New.Percent.Branch,Count.of.customers.who.would.recommend.brand.to.friends,fill=New.Percent.Branch))+geom_bar(stat="identity")+coord_flip()})
+  }else if(input$questions=="never.buy.from.brand.again"){
+    output$plot<-renderPlot({ggplot(data7,aes(New.Percent.Branch,Count.of.customers.who.would.never.buy.from.brand.again,fill=New.Percent.Branch))+geom_bar(stat = "identity")+coord_flip()})
+  }
+  #close observe  
+  })
+    
+  
+  }
+  
+
+shinyApp(ui = ui, server = server)
+```
+

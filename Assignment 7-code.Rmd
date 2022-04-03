@@ -1,0 +1,197 @@
+---
+title: 'Assignment 7: Marketing Analytics'
+author: "Preethi Abraham"
+date: "26/04/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#By Preethi Susan Abraham
+
+library(ggplot2)
+library(dplyr)
+
+data=read.csv("C:/Users/Preethi Abraham/Desktop/Brandeis Studies/Marketing Analytics/Assignment 7/hotelsat-data.csv")
+View(data)
+
+
+#Q1:Analyze the data to determine what aspects have the biggest impact on satisfaction
+
+
+#Creating a regression model with all 'satisfaction' parameters
+mod1=lm(satOverall~satCleanRoom +
+                    satCleanBath +
+                    satCleanCommon + 
+                    satFrontStaff +
+                    satDiningStaff +
+                    satHouseStaff +
+                    satValetStaff +
+                    satPerks + 
+                    satRoomPrice +
+                    satDiningPrice +
+                    satWifiPrice +
+                    satParkingPrice +
+                    satCity +
+                    satCloseTransp +
+                    satCloseEvents +
+                    satPoints+
+                    satRecognition, data=data)
+summary(mod1)
+#satisfaction levels of cleanroom,frontstaff,perks,dining price are some of the biggest factors which contribute to the overall satisfaction level for customers. Apart from these factors, other satisfaction parameters such as clean bath, house staff,wifi price, city, close transportation and points also contribute to determining the overall satisfaction to a certain extent.
+
+#This model only contains the satisfaction parameters that are impacting the overall satisfaction level
+mod2=lm(satOverall~satCleanRoom +
+                    satCleanBath +
+                    satFrontStaff +
+                    satHouseStaff +
+                    satPerks + 
+                    satDiningPrice +
+                    satWifiPrice +
+                    satParkingPrice +
+                    satCity +
+                    satCloseTransp +
+                    satPoints, data=data)
+summary(mod2)
+#Satisfaction levels of clean room, front staff,perks and dining price impact the overall satisfaction the most. The other satisfaction levels contribute to the overall satisfaction to a certain extent
+
+
+library(stargazer)
+stargazer(mod1,mod2,type="text")#to compare both models
+
+
+
+#Q2 and Q3 have been done together below:
+
+
+#I created to a column called 'TotalMoneySpentOnStay to understand how much each customer is spending on average for everything during their entire stay(i.e room, food, wifi)
+data$TotalMoneySpentOnStay=(data$avgRoomSpendPerNight+data$avgFoodSpendPerNight+data$avgWifiSpendPerNight)*data$nightsStayed
+
+mod3=lm(TotalMoneySpentOnStay~satCleanRoom +
+                    satCleanBath +
+                    satFrontStaff +
+                    satHouseStaff +
+                    satPerks + 
+                    satDiningPrice +
+                    satWifiPrice +
+                    satParkingPrice +
+                    satCity +
+                    satCloseTransp +
+                    satPoints+distanceTraveled,data=data)
+summary(mod3)
+mod4=lm(avgRoomSpendPerNight~satOverall,data=data)
+summary(mod4)
+#It looks like overall satisfaction level has a negative impact on the avg room spend per night. This means that as the overall satisfaction of customers increase, the average room spend per night decreases, and this does not seem right.
+
+data$eliteStatus=as.factor(data$eliteStatus)
+data$visitPurpose=as.factor(data$visitPurpose)
+mod5=lm(avgRoomSpendPerNight~satOverall+distanceTraveled+eliteStatus+visitPurpose,data=data)
+summary(mod5)
+#In this model too, it can be seen that overall satisfcation will negatively affect the average room spend per night. This does not seem logical.
+
+data_new <- data %>%
+  filter(eliteStatus=="NoStatus", visitPurpose=="Business")
+
+mod6 <- lm(TotalMoneySpentOnStay ~ satOverall, data=data_new)
+summary(mod6)
+#For customers whose elite status is 'No Status' and visit purpose is business related, overall satisfaction of those customers has some impact on the business's bottom line
+
+#Here, I have considered the 'bottom line' as the total money which our client makes from each customer(TotalMoneySpentOnStay)
+
+#Equation here is as follows:
+#TotalMoneySpentOnStay=96.32+150.80*satOverall
+#Since 96.32 is not significant, our equation is 
+
+#TotalMoneySpentOnStay= 150.80*satOverall
+#If satOverall=7
+  #TotalMoneySpentOnStay=150.80*7=1055.6 per customer from status of 'NoStatus' and business as their purpose of visit
+
+#There are 46 customers which belong to this category
+#So our client can expect a revenue of 1055.6*46=$48557.6 from such customers alone
+
+customers_based_on_status_and_visitpurpose=data%>%group_by(visitPurpose,eliteStatus)%>%summarise(n())
+View(customers_based_on_status_and_visitpurpose)
+names(customers_based_on_status_and_visitpurpose)[names(customers_based_on_status_and_visitpurpose) == "n()"] <- "Count.of.customers"
+
+ggplot(customers_based_on_status_and_visitpurpose,aes(Count.of.customers,visitPurpose))+geom_bar(aes(fill=eliteStatus),stat="identity", position=position_dodge())
+
+
+data_new2 <- data %>%
+  filter(eliteStatus=="Gold", visitPurpose=="SportsEvent")
+
+mod7 <- lm( TotalMoneySpentOnStay~ satOverall, data=data_new2)
+summary(mod7)
+#It can be seen that overall satisfaction levels of customers whose elite status is 'Gold' and purpose of visit was due to a sports event seem to be having an impact on the total amount of money that they spend on their stay
+
+#TotalMoneySpentOnStay= 204.6*satOverall
+##If satOverall=7
+  #TotalMoneySpentOnStay=204.6*7= $1432.2 per customer from status of 'Gold' and 'Sports Event' as their purpose of visit
+
+#There are 26 customers from this category(Gold+SportsEvent), so our client can earn $1432.2*26=37237.2
+
+
+data_new3 <- data %>%
+  filter(eliteStatus=="NoStatus", visitPurpose=="Concert")
+
+mod8 <- lm( TotalMoneySpentOnStay~ satOverall, data=data_new3)
+summary(mod8)
+#It can be seen that overall satisfaction levels of customers who have 'NoStatus' and purpose of visit was due to a concert seem to be having an impact on the total amount of money that they spend on their stay
+
+#Equation:
+  #TotalMoneySpentOnStay=351.59+108.57*satOverall
+#If satOverall=7
+  #TotalMoneySpentOnStay=351.59+108.57*7=$1111.58 per customer
+
+#There are 60 customers from this category
+#Total money earned from customers belonging to 'No Status' and whose visit purpose is for a concert is 1111.58*60=$66694.8
+
+
+x <- data %>%
+  group_by(visitPurpose) %>%
+  summarise(mean(avgRoomSpendPerNight),mean(satOverall),mean(nightsStayed),mean(TotalMoneySpentOnStay))
+
+
+#Q4: Make 3 additional insights from the data that the client could use to develop their product or their marketing
+
+
+#Aditional Insights
+
+library(ggplot2)
+
+ggplot(x,aes(visitPurpose,`mean(avgRoomSpendPerNight)`,fill=visitPurpose))+geom_bar(stat="identity", position=position_dodge())+labs(title="Average room spend per night for customers based on their purpose of visit ")+coord_flip()
+#All customers seem to be spending similar amount of money for their room
+
+ggplot(x,aes(visitPurpose,`mean(satOverall)`,fill=visitPurpose))+geom_bar(stat="identity", position=position_dodge())+labs(title="Average satisfaction level for customers based on their purpose of visit ")+coord_flip()
+#Customers who visit our client's hotel for business purposes are the most satified whereas those who come for Sports Events are the least satisfied. From the previous graph on 'Average room spend per night for customers based on their purpose of visit', it can be seen that customers who stay at the hotel due to sports events spend the most on their room compared to other customers. 
+
+#Our client should work on ensuring that customers are satisfied with their stay. Since the average satisfaction levels are in the range of 3 to 4, more work needs to be done to ensure that customers are satisfied with the stay at the hotel
+
+ggplot(x,aes(visitPurpose,`mean(TotalMoneySpentOnStay)`,fill=visitPurpose))+geom_bar(stat="identity", position=position_dodge())+coord_flip()+labs(title="Average amount spent during the stay as per the customer's purpose of visit")
+
+y=data %>%
+  group_by(visitPurpose,eliteStatus) %>%
+  summarise(mean(distanceTraveled),mean(satOverall),mean(TotalMoneySpentOnStay))
+View(y)
+
+
+ggplot(y,aes(visitPurpose,`mean(satOverall)`))+geom_bar(aes(fill=eliteStatus),stat="identity", position=position_dodge())+coord_flip()+labs(title="Average satisfaction level of customers based on purpose of visit and elite status")
+#Customers from elite status of 'Platinum' and whose purpose of visit is 'Other or Mixed' seem to be the most satisfied. Our client should target such an audience.'Platinum' customers seem to be the most satisfied in every group. Customers who stay at the hotel for 'Sports Event' purpose seem to be the least satisfied. This shows that such customers('Sports Event as purpose of visit) are not the target audience for our client.
+
+
+ggplot(y,aes(visitPurpose,`mean(distanceTraveled)`))+geom_bar(aes(fill=eliteStatus),stat="identity", position=position_dodge())+coord_flip()+labs(title="Average distance travelled based on purpose of visit and elite status")
+#Customers whose elite status is platinum and purpose of visit is 'Sports Event' seem to be travelling the most to stay at the client's hotel
+
+ggplot(y,aes(visitPurpose,`mean(TotalMoneySpentOnStay)`))+geom_bar(aes(fill=eliteStatus),stat="identity", position=position_dodge())+coord_flip()+labs(title="Average amount of money spent on stay as per visit pupose and elite status")
+#Customers who visit the hotel for 'Other or Mixed' purposes from platinum status spend the most during their stay
+
+#Overall:
+ #1. Platinum customers are the most satisfied in each category of purpose of visit(Business, Sports Event etc)
+ #2. Client's target audience seems to be the customers who will visit the hotel for 'Other or Mixed' purposes and for 'Concerts'. These customers seem to be coming from nearby places since the average distance travelled by them seems to be the least. They are satisfied and also spend the most during their stay. Besides this, our client should also focus on 'vacationers' since such customers also spend the most during their stay  
+#3.Our client should not focus too much on acquiring customers whose purpose of visit is due to a sports event. These customers are not from the local area(avg distance travelled is high), and they also spend the least amount of money during their stay at the hotel
+
+
+```
+
